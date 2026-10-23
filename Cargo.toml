@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/vikey-core",
+    "crates/vikey-daemon",
+    "crates/vikey-cli",
+    "crates/vikey-gui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+authors = ["Nguyễn Hải Đăng"]
+repository = "https://github.com/TheNewUser08/vikey"
+
+[workspace.dependencies]
+anyhow = "1.0"
+thiserror = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.9"
+log = "0.4"
+regex = "1.13"
+clap = { version = "4.6", features = ["derive"] }
+rustix = { version = "1.1", features = ["fs", "shm", "mm", "net", "process"] }
+memmap2 = "0.9"
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client", "staging", "unstable"] }
+wayland-protocols-misc = { version = "0.3", features = ["client"] }
+calloop = { version = "0.14", features = ["executor"] }
+calloop-wayland-source = "0.4"
+xkbcommon-dl = "0.4"
+zbus = "5.18"
+eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+egui = "0.31"

@@ -1,0 +1,16 @@
+[package]
+name = "vikey-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "vikey-ctl"
+path = "src/main.rs"
+
+[dependencies]
+vikey-core = { path = "../vikey-core" }
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true

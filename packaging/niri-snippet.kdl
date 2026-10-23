@@ -1,0 +1,17 @@
+// --- ViKey Integration for ~/.config/niri/config.kdl ---
+
+// 1. Autostart vikey-daemon when Niri starts
+spawn-at-startup "vikey-daemon"
+
+// 2. Optional keybind to toggle VN/EN (in addition to ViKey's built-in Ctrl+Shift)
+binds {
+    Mod+Space { spawn "vikey-ctl" "toggle"; }
+}
+
+// 3. Open ViKey Settings GUI as a centered floating window in Niri
+window-rule {
+    match app-id="^vikey-gui$"
+    open-floating true
+    default-column-width { fixed 680; }
+    default-window-height { fixed 500; }
+}
