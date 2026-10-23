@@ -184,7 +184,6 @@ struct ViKeyGuiApp {
     focused_window: Option<NiriWindow>,
     open_windows: Vec<NiriWindow>,
     last_poll: Instant,
-    status_msg: Option<(String, Instant)>,
 
     // New rule editor fields
     new_rule_name: String,
@@ -263,7 +262,6 @@ impl ViKeyGuiApp {
             focused_window: None,
             open_windows: Vec::new(),
             last_poll: Instant::now() - Duration::from_secs(10),
-            status_msg: None,
             new_rule_name: String::new(),
             new_rule_app_id: String::new(),
             new_rule_default_lang: Some(false),
@@ -307,7 +305,9 @@ impl ViKeyGuiApp {
 
     fn apply_and_save_config(&mut self) {
         // Always persist directly to ~/.config/vikey/config.toml first
-        let disk_saved = self.config.save();
+        if let Err(e) = self.config.save() {
+            eprintln!("Failed to save config: {e}");
+        }
 
         // Also push live update to running vikey-daemon if online
         if let Some(IpcResponse::Status(st)) =
@@ -315,16 +315,6 @@ impl ViKeyGuiApp {
         {
             self.daemon_online = true;
             self.enabled = st.enabled;
-            self.status_msg = Some(("Saved & synced with daemon".to_string(), Instant::now()));
-        } else {
-            match disk_saved {
-                Ok(()) => {
-                    self.status_msg = Some(("Saved to config.toml".to_string(), Instant::now()));
-                }
-                Err(e) => {
-                    self.status_msg = Some((format!("Save error: {e}"), Instant::now()));
-                }
-            }
         }
     }
 
@@ -347,7 +337,6 @@ impl ViKeyGuiApp {
                 self.config.enabled_by_default = st.enabled;
             }
             let _ = Self::send_ipc(&IpcRequest::UpdateConfig(Box::new(self.config.clone())));
-            self.status_msg = Some(("Saved language mode".to_string(), Instant::now()));
         } else {
             self.apply_and_save_config();
         }
@@ -517,13 +506,6 @@ impl ViKeyGuiApp {
             }
 
             ui.add_space(4.0);
-
-            if let Some((msg, ts)) = &self.status_msg
-                && ts.elapsed() < Duration::from_secs(4)
-            {
-                ui.label(RichText::new(msg).size(11.5).color(p.tag_green_fg));
-                ui.add_space(4.0);
-            }
 
             // Theme toggle row (Notion Light / Dark) — persisted to config.toml
             ui.horizontal(|ui| {
