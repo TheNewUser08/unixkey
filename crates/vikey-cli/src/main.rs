@@ -85,8 +85,6 @@ enum ToneArg {
 
 #[derive(ValueEnum, Clone, Copy, Debug)]
 enum CommitModeArg {
-    Backspace,
-    Surrounding,
     Preedit,
 }
 
@@ -280,13 +278,8 @@ fn main() -> Result<()> {
                 other => bail!("Unexpected response: {other:?}"),
             }
         }
-        Commands::CommitMode { mode } => {
-            let cm = match mode {
-                CommitModeArg::Backspace => CommitMode::VirtualBackspace,
-                CommitModeArg::Surrounding => CommitMode::SurroundingText,
-                CommitModeArg::Preedit => CommitMode::Preedit,
-            };
-            match send_request(&IpcRequest::SetCommitMode(cm))? {
+        Commands::CommitMode { mode: _ } => {
+            match send_request(&IpcRequest::SetCommitMode(CommitMode::Preedit))? {
                 IpcResponse::Status(st) => print_status(&st, false)?,
                 IpcResponse::Ok => {}
                 IpcResponse::Error(e) => bail!("Daemon error: {e}"),

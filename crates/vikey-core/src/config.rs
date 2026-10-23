@@ -8,23 +8,15 @@ use crate::buffer::EngineConfig;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum CommitMode {
-    /// Windows UniKey / ibus-bamboo style: immediate character commit without underline;
-    /// sends synthetic Backspace via `zwp_virtual_keyboard_v1` followed by `commit_string`.
+    /// Standard Wayland IME pre-edit buffer (native Wayland protocol).
     #[default]
-    VirtualBackspace,
-    /// Immediate character commit without underline; uses `zwp_input_method_v2::delete_surrounding_text`
-    /// when supported by the client application (falling back to VirtualBackspace if unavailable).
-    SurroundingText,
-    /// Standard Wayland IME pre-edit buffer (underlined composition until Space/Enter/punctuation).
     Preedit,
 }
 
 impl CommitMode {
     pub fn label(self) -> &'static str {
         match self {
-            CommitMode::VirtualBackspace => "Immediate (Virtual Backspace - UniKey Style)",
-            CommitMode::SurroundingText => "Immediate (Wayland Surrounding Text)",
-            CommitMode::Preedit => "Pre-edit Buffer (Underlined)",
+            CommitMode::Preedit => "Pre-edit Buffer",
         }
     }
 }
@@ -96,7 +88,7 @@ impl Default for Config {
                     app_id_regex: "^(foot|footclient|Alacritty|kitty|org\\.wezfurlong\\.wezterm|com\\.mitchellh\\.ghostty|org\\.gnome\\.Ptyxis|org\\.gnome\\.Console)$".to_string(),
                     title_regex: None,
                     default_enabled: Some(false),
-                    commit_mode: Some(CommitMode::VirtualBackspace),
+                    commit_mode: None,
                 },
                 AppRule {
                     name: "Steam & Games (Auto EN)".to_string(),

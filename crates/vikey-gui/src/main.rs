@@ -925,42 +925,6 @@ impl ViKeyGuiApp {
                 self.thin_divider(ui);
                 ui.add_space(6.0);
 
-                // Property 4: Commit Mode
-                ui.horizontal(|ui| {
-                    ui.vertical(|ui| {
-                        ui.set_max_width(250.0);
-                        ui.spacing_mut().item_spacing.y = 2.0;
-                        ui.label(
-                            RichText::new("Default Commit Mode (Cơ chế xuất chữ)")
-                                .size(14.0)
-                                .color(p.text_primary),
-                        );
-                        ui.label(
-                            RichText::new("Pre-edit buffer, Surrounding Text, or Virtual Backspace.")
-                                .size(12.0)
-                                .color(p.text_secondary),
-                        );
-                    });
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        egui::ComboBox::from_id_salt("commit_mode_combo")
-                            .selected_text(self.config.default_commit_mode.label())
-                            .show_ui(ui, |ui| {
-                                for cm in [
-                                    CommitMode::Preedit,
-                                    CommitMode::SurroundingText,
-                                    CommitMode::VirtualBackspace,
-                                ] {
-                                    changed |= ui
-                                        .selectable_value(
-                                            &mut self.config.default_commit_mode,
-                                            cm,
-                                            cm.label(),
-                                        )
-                                        .changed();
-                                }
-                            });
-                    });
-                });
                 ui.add_space(16.0);
 
                 // Section 2: Smart Features
@@ -1165,52 +1129,6 @@ impl ViKeyGuiApp {
                                             )
                                             .changed();
                                     });
-
-                                ui.add_space(12.0);
-                                ui.label(
-                                    RichText::new("Commit Mode:")
-                                        .size(12.0)
-                                        .color(p.text_secondary),
-                                );
-                                let cm_label = match rule.commit_mode {
-                                    None => "Use Default",
-                                    Some(CommitMode::Preedit) => "Pre-edit Buffer",
-                                    Some(CommitMode::SurroundingText) => "Surrounding Text",
-                                    Some(CommitMode::VirtualBackspace) => "Virtual Backspace",
-                                };
-                                egui::ComboBox::from_id_salt(format!("rule_cm_{idx}"))
-                                    .width(145.0)
-                                    .selected_text(cm_label)
-                                    .show_ui(ui, |ui| {
-                                        changed |= ui
-                                            .selectable_value(
-                                                &mut rule.commit_mode,
-                                                None,
-                                                "Use Default",
-                                            )
-                                            .changed();
-                                        changed |= ui
-                                            .selectable_value(
-                                                &mut rule.commit_mode,
-                                                Some(CommitMode::Preedit),
-                                                "Pre-edit Buffer",
-                                            )
-                                            .changed();
-                                        changed |= ui
-                                            .selectable_value(
-                                                &mut rule.commit_mode,
-                                                Some(CommitMode::SurroundingText),
-                                                "Surrounding Text",
-                                            )
-                                            .changed();
-                                        changed |= ui
-                                            .selectable_value(
-                                                &mut rule.commit_mode,
-                                                Some(CommitMode::VirtualBackspace),
-                                                "Virtual Backspace",
-                                            )
-                                            .changed();
-                                    });
                             });
                         });
                     ui.add_space(6.0);
@@ -1326,44 +1244,6 @@ impl ViKeyGuiApp {
                                         &mut self.new_rule_default_lang,
                                         Some(false),
                                         "Auto EN",
-                                    );
-                                });
-
-                            ui.add_space(6.0);
-                            ui.label(
-                                RichText::new("Commit:")
-                                    .size(12.0)
-                                    .color(p.text_secondary),
-                            );
-                            let new_cm_label = match self.new_rule_commit_mode {
-                                None => "Use Default",
-                                Some(CommitMode::Preedit) => "Pre-edit",
-                                Some(CommitMode::SurroundingText) => "Surrounding",
-                                Some(CommitMode::VirtualBackspace) => "Backspace",
-                            };
-                            egui::ComboBox::from_id_salt("new_rule_cm")
-                                .width(115.0)
-                                .selected_text(new_cm_label)
-                                .show_ui(ui, |ui| {
-                                    ui.selectable_value(
-                                        &mut self.new_rule_commit_mode,
-                                        None,
-                                        "Use Default",
-                                    );
-                                    ui.selectable_value(
-                                        &mut self.new_rule_commit_mode,
-                                        Some(CommitMode::Preedit),
-                                        "Pre-edit",
-                                    );
-                                    ui.selectable_value(
-                                        &mut self.new_rule_commit_mode,
-                                        Some(CommitMode::SurroundingText),
-                                        "Surrounding",
-                                    );
-                                    ui.selectable_value(
-                                        &mut self.new_rule_commit_mode,
-                                        Some(CommitMode::VirtualBackspace),
-                                        "Backspace",
                                     );
                                 });
 
