@@ -67,6 +67,7 @@ pub struct DaemonState {
     pub xkb: XkbTracker,
     pub word_buffer: WordBuffer,
     pub swallowed_keys: HashSet<u32>,
+    pub synthetic_backspaces_pending: u32,
     pub enabled: bool,
     pub active_commit_mode: CommitMode,
     pub start_instant: Instant,
@@ -116,6 +117,7 @@ impl DaemonState {
             xkb,
             word_buffer: WordBuffer::new(),
             swallowed_keys: HashSet::new(),
+            synthetic_backspaces_pending: 0,
             enabled,
             active_commit_mode,
             start_instant: Instant::now(),
@@ -378,7 +380,7 @@ impl DaemonState {
     }
 
     /// Commits a `Diff` according to the active commit mode (`SurroundingText` or `VirtualBackspace`).
-    fn commit_immediate_diff(&self, diff: &Diff) {
+    fn commit_immediate_diff(&mut self, diff: &Diff) {
         if diff.is_noop() {
             return;
         }
@@ -411,22 +413,18 @@ impl DaemonState {
         {
             let mut t = self.current_timestamp_ms();
             for _ in 0..diff.backspace_chars {
+                self.synthetic_backspaces_pending = self.synthetic_backspaces_pending.saturating_add(1);
                 vk.key(t, EVDEV_KEY_BACKSPACE, KeyState::Pressed.into());
                 t = t.wrapping_add(1);
                 vk.key(t, EVDEV_KEY_BACKSPACE, KeyState::Released.into());
                 t = t.wrapping_add(1);
             }
-            let _ = self.conn.flush();
 
             if !diff.insert_text.is_empty() {
-                // Multi-process browsers (Zen/Firefox/Chromium) need ~8-12ms to process
-                // the wl_keyboard Backspace before zwp_text_input_v3::commit_string arrives.
-                let delay_ms = self.config.backspace_delay_ms.max(8);
-                thread::sleep(Duration::from_millis(delay_ms));
                 im.commit_string(diff.insert_text.clone());
                 im.commit(self.done_serial);
-                let _ = self.conn.flush();
             }
+            let _ = self.conn.flush();
         }
     }
 
@@ -469,6 +467,12 @@ impl DaemonState {
                 self.flush_and_reset_buffer();
             }
             self.forward_raw_key(time, key, KeyState::Pressed);
+            return;
+        }
+
+        // 3.5. Ignore synthetic Backspaces emitted by our own virtual_keyboard
+        if key == EVDEV_KEY_BACKSPACE && self.synthetic_backspaces_pending > 0 {
+            self.synthetic_backspaces_pending = self.synthetic_backspaces_pending.saturating_sub(1);
             return;
         }
 
