@@ -927,6 +927,53 @@ impl ViKeyGuiApp {
                 self.thin_divider(ui);
                 ui.add_space(6.0);
 
+                // Property 4: Commit Mode (Chế độ gõ: Pre-edit Buffer vs Direct Commit)
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        ui.set_max_width(280.0);
+                        ui.spacing_mut().item_spacing.y = 2.0;
+                        ui.label(
+                            RichText::new("Commit Mode (Chế độ gõ)")
+                                .size(14.0)
+                                .color(p.text_primary),
+                        );
+                        ui.label(
+                            RichText::new(self.config.default_commit_mode.description())
+                                .size(11.5)
+                                .color(p.text_secondary),
+                        );
+                    });
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        for (mode, label) in [
+                            (CommitMode::Direct, "Direct (Fast Autocomplete)"),
+                            (CommitMode::Preedit, "Pre-edit (Underlined)"),
+                        ] {
+                            let selected = self.config.default_commit_mode == mode;
+                            let btn = egui::Button::new(
+                                RichText::new(label).size(12.0).color(if selected {
+                                    Color32::WHITE
+                                } else {
+                                    p.text_primary
+                                }),
+                            )
+                            .fill(if selected { p.accent_blue } else { p.bg_card })
+                            .stroke(Stroke::new(
+                                1.0_f32,
+                                if selected { p.accent_blue } else { p.border },
+                            ))
+                            .corner_radius(CornerRadius::same(6));
+
+                            if ui.add(btn).clicked() && !selected {
+                                self.config.default_commit_mode = mode;
+                                changed = true;
+                            }
+                        }
+                    });
+                });
+                ui.add_space(6.0);
+                self.thin_divider(ui);
+                ui.add_space(6.0);
+
                 ui.add_space(16.0);
 
                 // Section 2: Smart Features
@@ -1131,6 +1178,44 @@ impl ViKeyGuiApp {
                                             )
                                             .changed();
                                     });
+
+                                ui.add_space(8.0);
+                                ui.label(
+                                    RichText::new("Commit:")
+                                        .size(12.0)
+                                        .color(p.text_secondary),
+                                );
+                                let cm_label = match rule.commit_mode {
+                                    None => "Default",
+                                    Some(CommitMode::Direct) => "Direct",
+                                    Some(CommitMode::Preedit) => "Pre-edit",
+                                };
+                                egui::ComboBox::from_id_salt(format!("rule_cm_{idx}"))
+                                    .width(100.0)
+                                    .selected_text(cm_label)
+                                    .show_ui(ui, |ui| {
+                                        changed |= ui
+                                            .selectable_value(
+                                                &mut rule.commit_mode,
+                                                None,
+                                                "Default",
+                                            )
+                                            .changed();
+                                        changed |= ui
+                                            .selectable_value(
+                                                &mut rule.commit_mode,
+                                                Some(CommitMode::Direct),
+                                                "Direct",
+                                            )
+                                            .changed();
+                                        changed |= ui
+                                            .selectable_value(
+                                                &mut rule.commit_mode,
+                                                Some(CommitMode::Preedit),
+                                                "Pre-edit",
+                                            )
+                                            .changed();
+                                    });
                             });
                         });
                     ui.add_space(6.0);
@@ -1246,6 +1331,38 @@ impl ViKeyGuiApp {
                                         &mut self.new_rule_default_lang,
                                         Some(false),
                                         "Auto EN",
+                                    );
+                                });
+
+                            ui.add_space(8.0);
+                            ui.label(
+                                RichText::new("Commit:")
+                                    .size(12.0)
+                                    .color(p.text_secondary),
+                            );
+                            let new_cm_label = match self.new_rule_commit_mode {
+                                None => "Default",
+                                Some(CommitMode::Direct) => "Direct",
+                                Some(CommitMode::Preedit) => "Pre-edit",
+                            };
+                            egui::ComboBox::from_id_salt("new_rule_cm")
+                                .width(105.0)
+                                .selected_text(new_cm_label)
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(
+                                        &mut self.new_rule_commit_mode,
+                                        None,
+                                        "Default",
+                                    );
+                                    ui.selectable_value(
+                                        &mut self.new_rule_commit_mode,
+                                        Some(CommitMode::Direct),
+                                        "Direct",
+                                    );
+                                    ui.selectable_value(
+                                        &mut self.new_rule_commit_mode,
+                                        Some(CommitMode::Preedit),
+                                        "Pre-edit",
                                     );
                                 });
 

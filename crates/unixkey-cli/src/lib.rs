@@ -86,6 +86,16 @@ enum ToneArg {
 #[derive(ValueEnum, Clone, Copy, Debug)]
 enum CommitModeArg {
     Preedit,
+    Direct,
+}
+
+impl From<CommitModeArg> for CommitMode {
+    fn from(arg: CommitModeArg) -> Self {
+        match arg {
+            CommitModeArg::Preedit => CommitMode::Preedit,
+            CommitModeArg::Direct => CommitMode::Direct,
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -278,8 +288,8 @@ pub fn run() -> Result<()> {
                 other => bail!("Unexpected response: {other:?}"),
             }
         }
-        Commands::CommitMode { mode: _ } => {
-            match send_request(&IpcRequest::SetCommitMode(CommitMode::Preedit))? {
+        Commands::CommitMode { mode } => {
+            match send_request(&IpcRequest::SetCommitMode(mode.into()))? {
                 IpcResponse::Status(st) => print_status(&st, false)?,
                 IpcResponse::Ok => {}
                 IpcResponse::Error(e) => bail!("Daemon error: {e}"),

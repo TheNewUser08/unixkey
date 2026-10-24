@@ -2,11 +2,11 @@ use std::collections::{HashMap, HashSet};
 use std::os::fd::AsFd;
 use std::process::Command;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use regex::Regex;
 use unixkey_core::{
-    CommitMode, Config, DaemonStatus, InputMethod, IpcRequest, IpcResponse, WordBuffer,
+    CommitMode, Config, DaemonStatus, Diff, InputMethod, IpcRequest, IpcResponse, WordBuffer,
 };
 use wayland_client::protocol::wl_keyboard::KeyState;
 use wayland_client::protocol::wl_registry::{self, WlRegistry};
@@ -28,6 +28,7 @@ use wayland_protocols_misc::zwp_virtual_keyboard_v1::client::zwp_virtual_keyboar
 use crate::ipc_server::{IpcCommand, SubscriberRegistry};
 use crate::niri::{NiriEvent, NiriTracker};
 use crate::tray::{TrayAction, TrayHandle, TrayState};
+use crate::uinput::UinputKeyboard;
 use crate::xkb::{EVDEV_KEY_BACKSPACE, EVDEV_KEY_ENTER, EVDEV_KEY_TAB, XkbTracker};
 
 struct CompiledAppRule {
@@ -67,8 +68,11 @@ pub struct DaemonState {
     pub xkb: XkbTracker,
     pub word_buffer: WordBuffer,
     pub swallowed_keys: HashSet<u32>,
+    pub synthetic_backspaces_pending: u32,
     pub enabled: bool,
     pub active_commit_mode: CommitMode,
+    pub uinput_kb: Option<UinputKeyboard>,
+    pub start_instant: Instant,
 
     // Key repeat state
     pub repeat_rate: i32,
@@ -115,8 +119,11 @@ impl DaemonState {
             xkb,
             word_buffer: WordBuffer::new(),
             swallowed_keys: HashSet::new(),
+            synthetic_backspaces_pending: 0,
             enabled,
             active_commit_mode,
+            uinput_kb: UinputKeyboard::try_new(),
+            start_instant: Instant::now(),
             repeat_rate: 30,
             repeat_delay: 400,
             repeating_key: None,
@@ -172,7 +179,9 @@ impl DaemonState {
 
     pub fn flush_and_reset_buffer(&mut self) {
         if !self.word_buffer.is_empty() {
-            if let Some(im) = &self.input_method {
+            if self.active_commit_mode == CommitMode::Preedit
+                && let Some(im) = &self.input_method
+            {
                 let (final_word, _) = self.word_buffer.finalize_word_full(&self.config.engine);
                 im.set_preedit_string(String::new(), 0, 0);
                 if !final_word.is_empty() {
@@ -180,9 +189,8 @@ impl DaemonState {
                 }
                 im.commit(self.done_serial);
                 let _ = self.conn.flush();
-            } else {
-                self.word_buffer.clear();
             }
+            self.word_buffer.clear();
         }
         self.repeating_key = None;
     }
@@ -316,10 +324,10 @@ impl DaemonState {
                 self.notify_state_changed();
                 IpcResponse::Status(Box::new(self.status_snapshot()))
             }
-            IpcRequest::SetCommitMode(_cm) => {
+            IpcRequest::SetCommitMode(cm) => {
                 self.flush_and_reset_buffer();
-                self.config.default_commit_mode = CommitMode::Preedit;
-                self.active_commit_mode = CommitMode::Preedit;
+                self.config.default_commit_mode = cm;
+                self.active_commit_mode = cm;
                 let _ = self.config.save();
                 self.notify_state_changed();
                 IpcResponse::Status(Box::new(self.status_snapshot()))
@@ -365,6 +373,60 @@ impl DaemonState {
         }
     }
 
+    fn current_timestamp_ms(&self) -> u32 {
+        self.start_instant.elapsed().as_millis() as u32
+    }
+
+    /// Commits a `Diff` according to Direct commit mode (uinput or virtual keyboard).
+    fn commit_immediate_diff(&mut self, diff: &Diff) {
+        if diff.is_noop() {
+            return;
+        }
+        let Some(im) = &self.input_method else {
+            return;
+        };
+
+        if diff.backspace_chars == 0 {
+            if !diff.insert_text.is_empty() {
+                im.commit_string(diff.insert_text.clone());
+                im.commit(self.done_serial);
+                let _ = self.conn.flush();
+            }
+            return;
+        }
+
+        // Need to delete `diff.backspace_chars` characters before inserting `diff.insert_text`
+        if let Some(uinput) = &mut self.uinput_kb {
+            self.synthetic_backspaces_pending =
+                self.synthetic_backspaces_pending.saturating_add(diff.backspace_chars as u32);
+            uinput.send_backspaces(diff.backspace_chars);
+        } else if self.vk_has_keymap
+            && let Some(vk) = &self.virtual_keyboard
+        {
+            let mut t = self.current_timestamp_ms();
+            for _ in 0..diff.backspace_chars {
+                self.synthetic_backspaces_pending =
+                    self.synthetic_backspaces_pending.saturating_add(1);
+                vk.key(t, EVDEV_KEY_BACKSPACE, KeyState::Pressed.into());
+                t = t.wrapping_add(1);
+                vk.key(t, EVDEV_KEY_BACKSPACE, KeyState::Released.into());
+                t = t.wrapping_add(1);
+            }
+            let _ = self.conn.flush();
+        }
+
+        if !diff.insert_text.is_empty() {
+            // Multi-process browsers and IDEs (Zen/Firefox/VS Code/Zed) need a micro-delay
+            // to process the kernel Backspace before zwp_text_input_v3::commit_string arrives.
+            let delay_ms = self.config.backspace_delay_ms.clamp(4, 30);
+            thread::sleep(Duration::from_millis(delay_ms));
+
+            im.commit_string(diff.insert_text.clone());
+            im.commit(self.done_serial);
+            let _ = self.conn.flush();
+        }
+    }
+
     pub fn process_key_event(&mut self, time: u32, key: u32, state: KeyState, is_repeat: bool) {
         let pressed = matches!(state, KeyState::Pressed);
 
@@ -407,22 +469,47 @@ impl DaemonState {
             return;
         }
 
+        // 3.5. Ignore synthetic Backspaces emitted by our own uinput or virtual_keyboard
+        if key == EVDEV_KEY_BACKSPACE && self.synthetic_backspaces_pending > 0 {
+            self.synthetic_backspaces_pending = self.synthetic_backspaces_pending.saturating_sub(1);
+            return;
+        }
+
         // 4. Handle Backspace inside active word buffer
         if key == EVDEV_KEY_BACKSPACE {
             if !self.word_buffer.is_empty() {
-                let _ = self.word_buffer.pop_char(&self.config.engine);
-                if let Some(im) = &self.input_method {
-                    let disp = self.word_buffer.displayed().to_string();
-                    let len = disp.len() as i32;
-                    im.set_preedit_string(disp, len, len);
-                    im.commit(self.done_serial);
-                    let _ = self.conn.flush();
+                if self.active_commit_mode == CommitMode::Preedit {
+                    let _ = self.word_buffer.pop_char(&self.config.engine);
+                    if let Some(im) = &self.input_method {
+                        let disp = self.word_buffer.displayed().to_string();
+                        let len = disp.len() as i32;
+                        im.set_preedit_string(disp, len, len);
+                        im.commit(self.done_serial);
+                        let _ = self.conn.flush();
+                    }
+                    self.swallowed_keys.insert(key);
+                    if !is_repeat && self.xkb.key_repeats(key) {
+                        self.repeating_key = Some((key, time));
+                    }
+                    return;
+                } else if let Some(diff) = self.word_buffer.pop_char(&self.config.engine) {
+                    if diff.backspace_chars == 1 && diff.insert_text.is_empty() {
+                        // Simple 1-char deletion: forward raw Backspace directly to the app
+                        self.forward_raw_key(time, key, KeyState::Pressed);
+                        if !is_repeat && self.xkb.key_repeats(key) {
+                            self.repeating_key = Some((key, time));
+                        }
+                        return;
+                    } else {
+                        // Tone repositioned on earlier vowel when coda was deleted (e.g. "hoàn" -> "hoà")
+                        self.swallowed_keys.insert(key);
+                        self.commit_immediate_diff(&diff);
+                        if !is_repeat && self.xkb.key_repeats(key) {
+                            self.repeating_key = Some((key, time));
+                        }
+                        return;
+                    }
                 }
-                self.swallowed_keys.insert(key);
-                if !is_repeat && self.xkb.key_repeats(key) {
-                    self.repeating_key = Some((key, time));
-                }
-                return;
             }
             self.forward_raw_key(time, key, KeyState::Pressed);
             return;
@@ -461,13 +548,17 @@ impl DaemonState {
                 self.repeating_key = Some((key, time));
             }
 
-            let _ = self.word_buffer.push_char(ch, &self.config.engine);
-            if let Some(im) = &self.input_method {
-                let disp = self.word_buffer.displayed().to_string();
-                let len = disp.len() as i32;
-                im.set_preedit_string(disp, len, len);
-                im.commit(self.done_serial);
-                let _ = self.conn.flush();
+            let diff = self.word_buffer.push_char(ch, &self.config.engine);
+            if self.active_commit_mode == CommitMode::Preedit {
+                if let Some(im) = &self.input_method {
+                    let disp = self.word_buffer.displayed().to_string();
+                    let len = disp.len() as i32;
+                    im.set_preedit_string(disp, len, len);
+                    im.commit(self.done_serial);
+                    let _ = self.conn.flush();
+                }
+            } else {
+                self.commit_immediate_diff(&diff);
             }
             return;
         }
@@ -507,24 +598,34 @@ impl DaemonState {
             return false;
         }
 
-        let (mut final_word, _) = self.word_buffer.finalize_word_full(&self.config.engine);
+        if self.active_commit_mode == CommitMode::Preedit {
+            let (mut final_word, _) = self.word_buffer.finalize_word_full(&self.config.engine);
 
-        let mut consumed_boundary = false;
-        if let Some(bch) = boundary_char
-            && !bch.is_control()
-        {
-            final_word.push(bch);
-            consumed_boundary = true;
-        }
-        if let Some(im) = &self.input_method {
-            im.set_preedit_string(String::new(), 0, 0);
-            if !final_word.is_empty() {
-                im.commit_string(final_word);
+            let mut consumed_boundary = false;
+            if let Some(bch) = boundary_char
+                && !bch.is_control()
+            {
+                final_word.push(bch);
+                consumed_boundary = true;
             }
-            im.commit(self.done_serial);
-            let _ = self.conn.flush();
+            if let Some(im) = &self.input_method {
+                im.set_preedit_string(String::new(), 0, 0);
+                if !final_word.is_empty() {
+                    im.commit_string(final_word);
+                }
+                im.commit(self.done_serial);
+                let _ = self.conn.flush();
+            }
+            consumed_boundary
+        } else {
+            // Direct commit: check if spellcheck restore was triggered on word boundary
+            let diff = self.word_buffer.finalize_word(&self.config.engine);
+            if !diff.is_noop() {
+                self.commit_immediate_diff(&diff);
+            }
+            self.word_buffer.clear();
+            false
         }
-        consumed_boundary
     }
 }
 

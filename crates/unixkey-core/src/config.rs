@@ -11,12 +11,28 @@ pub enum CommitMode {
     /// Standard Wayland IME pre-edit buffer (native Wayland protocol).
     #[default]
     Preedit,
+    /// Direct character commit without underline (UniKey / Bamboo style).
+    /// Real-time IDE code recommendations and live search suggestions work while typing.
+    #[serde(alias = "virtual_backspace")]
+    Direct,
 }
 
 impl CommitMode {
     pub fn label(self) -> &'static str {
         match self {
-            CommitMode::Preedit => "Pre-edit Buffer",
+            CommitMode::Preedit => "Pre-edit Buffer (Underlined)",
+            CommitMode::Direct => "Direct Commit (Fast Autocomplete / No Underline)",
+        }
+    }
+
+    pub fn description(self) -> &'static str {
+        match self {
+            CommitMode::Preedit => {
+                "Composes words in an underlined Wayland buffer. Standard & stable, but search bars and IDE recommendations wait for word completion."
+            }
+            CommitMode::Direct => {
+                "Commits every letter immediately. Real-time IDE code completion and live search suggestions work while typing. Uses kernel uinput/backspace."
+            }
         }
     }
 }

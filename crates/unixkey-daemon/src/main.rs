@@ -1,6 +1,7 @@
 mod ipc_server;
 mod niri;
 mod tray;
+mod uinput;
 mod wayland;
 mod xkb;
 
