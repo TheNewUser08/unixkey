@@ -2,6 +2,7 @@
 
 <p align="center">
   <a href="https://ko-fi.com/dang809156"><img src="https://img.shields.io/badge/Ko--fi-Support%20Author-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi"></a>
+  <a href="#-chuyển-khoản-qua-vietqr-bidv"><img src="https://img.shields.io/badge/VietQR-Ủng%20hộ%20BIDV-006B68?style=for-the-badge" alt="VietQR BIDV"></a>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License">
   <img src="https://img.shields.io/badge/Fedora-Wayland%20%2F%20Niri-51A2DA?style=for-the-badge&logo=fedora&logoColor=white" alt="Fedora Niri">
 </p>
@@ -44,15 +45,31 @@ See [`packaging/niri-snippet.kdl`](packaging/niri-snippet.kdl).
 > flatpak override --user --env=GTK_IM_MODULE=wayland --env=QT_IM_MODULE=wayland
 > ```
 
-## Support / Ủng hộ dự án
+## Support / Ủng hộ tác giả ☕
 
-If you find ViKey helpful for typing Vietnamese on Linux & Niri, you can support development via Ko-fi:
+Nếu bạn thấy ViKey hữu ích cho trải nghiệm gõ tiếng Việt trên Linux và Niri, bạn có thể ủng hộ dự án qua:
 
-<a href="https://ko-fi.com/dang809156" target="_blank">
-  <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="40" style="border:0px;height:40px;" alt="Support on Ko-fi" />
-</a>
+### 🇻🇳 Chuyển khoản qua VietQR (BIDV)
 
-Or via direct link: **[https://ko-fi.com/dang809156](https://ko-fi.com/dang809156)**
+<div align="center">
+  <img src="assets/vietqr.jpg" width="220" alt="VietQR BIDV 8850896383" />
+  <br/>
+  <b>Ngân hàng TMCP Đầu tư và Phát triển Việt Nam (BIDV)</b><br/>
+  Số tài khoản: <code>8850896383</code><br/>
+  Chủ tài khoản: <b>NGUYEN HAI DANG</b>
+</div>
+
+<br/>
+
+### 🌍 International Supporters (Ko-fi)
+
+<p align="center">
+  <a href="https://ko-fi.com/dang809156" target="_blank">
+    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="40" style="border:0px;height:40px;" alt="Support on Ko-fi" />
+  </a>
+  <br/>
+  <a href="https://ko-fi.com/dang809156">https://ko-fi.com/dang809156</a>
+</p>
 
 ## License
 
