@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=UniXKey
+GenericName=Vietnamese Input Method
+Comment=Standalone Vietnamese IME for Wayland and Niri
+Exec=unixkey-gui
+Icon=unixkey
+Terminal=false
+Type=Application
+Categories=Utility;Settings;DesktopSettings;
+StartupNotify=true
+StartupWMClass=unixkey-gui
+Keywords=vietnamese;ime;telex;vni;input;wayland;niri;tieng viet;

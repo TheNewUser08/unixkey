@@ -6,7 +6,7 @@ After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.cargo/bin/unixkey-daemon
+ExecStart=/usr/bin/unixkey-daemon
 Restart=on-failure
 RestartSec=2
 

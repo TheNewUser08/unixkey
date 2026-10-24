@@ -29,6 +29,15 @@ Unlike traditional Linux IMEs, UniXKey speaks `zwp_input_method_v2` and `zwp_vir
 
 ## Installation on Fedora Linux
 
+### Option 1: Via Fedora COPR (Recommended)
+
+```bash
+sudo dnf copr enable thenewuser08/unixkey
+sudo dnf install unixkey
+```
+
+### Option 2: Build from Source (Cargo)
+
 ```bash
 cargo install --path crates/unixkey-daemon
 cargo install --path crates/unixkey-cli
