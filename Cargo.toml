@@ -12,7 +12,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 authors = ["Nguyễn Hải Đăng"]
-repository = "https://github.com/TheNewUser08/vikey"
+repository = "https://github.com/TheNewUser08/unixkey"
 
 [workspace.dependencies]
 anyhow = "1.0"

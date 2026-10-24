@@ -1,6 +1,6 @@
 [Unit]
 Description=UniXKey — Standalone Wayland Vietnamese Input Method Daemon for Niri
-Documentation=https://github.com/TheNewUser08/vikey
+Documentation=https://github.com/TheNewUser08/unixkey
 PartOf=graphical-session.target
 After=graphical-session.target
 

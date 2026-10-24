@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Standalone Rust Vietnamese Input Method for Wayland & Niri
 
 License:        MIT
-URL:            https://github.com/TheNewUser08/vikey
+URL:            https://github.com/TheNewUser08/unixkey
 Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  cargo
