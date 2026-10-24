@@ -1,5 +1,11 @@
 # ViKey — Standalone Rust Vietnamese Input Method for Fedora & Niri
 
+<p align="center">
+  <a href="https://ko-fi.com/dang809156"><img src="https://img.shields.io/badge/Ko--fi-Support%20Author-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi"></a>
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License">
+  <img src="https://img.shields.io/badge/Fedora-Wayland%20%2F%20Niri-51A2DA?style=for-the-badge&logo=fedora&logoColor=white" alt="Fedora Niri">
+</p>
+
 ViKey is a lightweight, standalone Vietnamese Input Method Editor (IME) written in pure Rust for **Fedora Linux** and the **Niri** scrolling tiling Wayland compositor.
 
 Unlike traditional Linux IMEs, ViKey speaks `zwp_input_method_v2` and `zwp_virtual_keyboard_v1` directly to Niri without requiring IBus or Fcitx5, and connects to `$NIRI_SOCKET` for intelligent per-window language memory and per-application commit strategies.
@@ -7,10 +13,7 @@ Unlike traditional Linux IMEs, ViKey speaks `zwp_input_method_v2` and `zwp_virtu
 ## Features
 
 - **Standalone Wayland Daemon (`vikey-daemon`)**: Uses `zwp_input_method_v2` + `zwp_virtual_keyboard_v1` directly with Niri.
-- **Dual Commit Engine (Per-App Configurable)**:
-  - `virtual_backspace`: Windows UniKey / `ibus-bamboo` style immediate character commit with minimal-diff synthetic backspace replacement (no pre-edit underline; works cleanly in browser URL bars, Electron apps, VS Code, Discord).
-  - `surrounding_text`: Immediate character commit using `zwp_input_method_v2::delete_surrounding_text`.
-  - `preedit`: Standard Wayland underlined composition buffer.
+- **Native Wayland Pre-edit Buffer**: Clean inline composition buffer (`zwp_input_method_v2::set_preedit_string`) with full Wayland text-input protocol compliance.
 - **Complete Linguistic Engine (`vikey-core`)**:
   - **Telex** & **VNI** input methods with free-order tone/diacritic placement and double-tap escape undo (`aa` -> `a`, `dd` -> `d`, `ww` -> `w`, `ss` -> `s`).
   - **Modern** (`hoà`, `hoè`, `thuý`) and **Traditional** (`hòa`, `hòe`, `thúy`) tone placement.
@@ -40,6 +43,16 @@ See [`packaging/niri-snippet.kdl`](packaging/niri-snippet.kdl).
 > ```bash
 > flatpak override --user --env=GTK_IM_MODULE=wayland --env=QT_IM_MODULE=wayland
 > ```
+
+## Support / Ủng hộ dự án
+
+If you find ViKey helpful for typing Vietnamese on Linux & Niri, you can support development via Ko-fi:
+
+<a href="https://ko-fi.com/dang809156" target="_blank">
+  <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="40" style="border:0px;height:40px;" alt="Support on Ko-fi" />
+</a>
+
+Or via direct link: **[https://ko-fi.com/dang809156](https://ko-fi.com/dang809156)**
 
 ## License
 

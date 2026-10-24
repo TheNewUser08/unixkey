@@ -539,6 +539,26 @@ impl ViKeyGuiApp {
             });
 
             ui.add_space(4.0);
+
+            // Ko-fi support link
+            let kofi_btn = egui::Button::new(
+                RichText::new("☕ Support on Ko-fi")
+                    .size(11.5)
+                    .color(p.text_secondary),
+            )
+            .fill(p.bg_canvas)
+            .stroke(Stroke::new(1.0_f32, p.border))
+            .corner_radius(CornerRadius::same(5));
+
+            if ui
+                .add_sized([ui.available_width(), 24.0], kofi_btn)
+                .on_hover_text("Open https://ko-fi.com/dang809156 in browser")
+                .clicked()
+            {
+                ctx.open_url(egui::OpenUrl::new_tab("https://ko-fi.com/dang809156"));
+            }
+
+            ui.add_space(4.0);
             self.thin_divider(ui);
         });
     }
