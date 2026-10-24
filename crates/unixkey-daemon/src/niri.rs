@@ -8,7 +8,7 @@ use calloop::channel::Sender;
 use log::{debug, info, warn};
 use serde::Deserialize;
 use serde_json::Value;
-use vikey_core::NiriWindow;
+use unixkey_core::NiriWindow;
 
 #[derive(Debug, Clone)]
 pub enum NiriEvent {

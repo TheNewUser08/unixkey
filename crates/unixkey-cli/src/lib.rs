@@ -6,15 +6,15 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum};
 use serde::Serialize;
-use vikey_core::{
+use unixkey_core::{
     CommitMode, DaemonStatus, InputMethod, IpcRequest, IpcResponse, ToneStyle, runtime_socket_path,
 };
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "vikey-ctl",
+    name = "unixkey-ctl",
     version,
-    about = "Control CLI & Waybar status provider for ViKey (Vietnamese IME for Niri)"
+    about = "Control CLI & Waybar status provider for UniXKey (Vietnamese IME for Niri)"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -54,14 +54,14 @@ enum Commands {
         #[arg(value_enum)]
         mode: CommitModeArg,
     },
-    /// List open Niri windows tracked by vikey-daemon
+    /// List open Niri windows tracked by unixkey-daemon
     Windows {
         #[arg(long)]
         json: bool,
     },
-    /// Reload configuration from ~/.config/vikey/config.toml
+    /// Reload configuration from ~/.config/unixkey/config.toml
     Reload,
-    /// Stop vikey-daemon
+    /// Stop unixkey-daemon
     Quit,
 }
 
@@ -144,7 +144,7 @@ fn send_request(req: &IpcRequest) -> Result<IpcResponse> {
     let sock_path = runtime_socket_path();
     let mut stream = UnixStream::connect(&sock_path).with_context(|| {
         format!(
-            "Could not connect to vikey-daemon at {}. Is vikey-daemon running?",
+            "Could not connect to unixkey-daemon at {}. Is unixkey-daemon running?",
             sock_path.display()
         )
     })?;
@@ -159,7 +159,7 @@ fn send_request(req: &IpcRequest) -> Result<IpcResponse> {
     reader.read_line(&mut line)?;
 
     let resp: IpcResponse =
-        serde_json::from_str(line.trim()).context("Invalid response from vikey-daemon")?;
+        serde_json::from_str(line.trim()).context("Invalid response from unixkey-daemon")?;
     Ok(resp)
 }
 
@@ -213,7 +213,7 @@ fn watch_status(json: bool) -> Result<()> {
                     let offline = WaybarOutput {
                         text: "--",
                         alt: "offline",
-                        tooltip: "vikey-daemon is not running".to_string(),
+                        tooltip: "unixkey-daemon is not running".to_string(),
                         class: "offline",
                     };
                     println!("{}", serde_json::to_string(&offline)?);
@@ -224,7 +224,7 @@ fn watch_status(json: bool) -> Result<()> {
     }
 }
 
-fn main() -> Result<()> {
+pub fn run() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
@@ -314,7 +314,7 @@ fn main() -> Result<()> {
             other => bail!("Unexpected response: {other:?}"),
         },
         Commands::Quit => match send_request(&IpcRequest::Quit)? {
-            IpcResponse::Ok => println!("Stopping vikey-daemon."),
+            IpcResponse::Ok => println!("Stopping unixkey-daemon."),
             IpcResponse::Error(e) => bail!("Daemon error: {e}"),
             other => bail!("Unexpected response: {other:?}"),
         },

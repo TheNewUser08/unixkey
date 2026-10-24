@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/vikey-core",
-    "crates/vikey-daemon",
-    "crates/vikey-cli",
-    "crates/vikey-gui",
+    "crates/unixkey-core",
+    "crates/unixkey-daemon",
+    "crates/unixkey-cli",
+    "crates/unixkey-gui",
 ]
 
 [workspace.package]

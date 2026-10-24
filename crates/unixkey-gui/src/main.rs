@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use eframe::egui::{
     self, Color32, CornerRadius, FontFamily, FontId, Margin, RichText, Stroke, Vec2,
 };
-use vikey_core::{
+use unixkey_core::{
     AppRule, CommitMode, Config, InputMethod, IpcRequest, IpcResponse, NiriWindow, ToggleShortcut,
     ToneStyle, runtime_socket_path, transform_text,
 };
@@ -23,9 +23,9 @@ enum Tab {
 impl Tab {
     fn breadcrumb(self) -> &'static str {
         match self {
-            Tab::General => "ViKey  /  General & Typing",
-            Tab::AppRules => "ViKey  /  Per-App Rules (Niri)",
-            Tab::Sandbox => "ViKey  /  Live Typing Sandbox",
+            Tab::General => "UniXKey  /  General & Typing",
+            Tab::AppRules => "UniXKey  /  Per-App Rules (Niri)",
+            Tab::Sandbox => "UniXKey  /  Live Typing Sandbox",
         }
     }
 
@@ -367,7 +367,7 @@ impl ViKeyGuiApp {
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing.y = 1.0;
                     ui.label(
-                        RichText::new("ViKey Workspace")
+                        RichText::new("UniXKey Workspace")
                             .size(14.5)
                             .strong()
                             .color(p.text_primary),
@@ -443,7 +443,7 @@ impl ViKeyGuiApp {
                 if !self.daemon_online {
                     ui.add_space(4.0);
                     let start_btn = egui::Button::new(
-                        RichText::new("Start vikey-daemon")
+                        RichText::new("Start unixkey-daemon")
                             .size(12.0)
                             .color(Color32::WHITE),
                     )
@@ -456,9 +456,9 @@ impl ViKeyGuiApp {
                         let _ = Command::new("pkill").args(["-x", "ibus-daemon"]).status();
                         let exe = std::env::current_exe()
                             .ok()
-                            .and_then(|path| path.parent().map(|d| d.join("vikey-daemon")))
+                            .and_then(|path| path.parent().map(|d| d.join("unixkey-daemon")))
                             .filter(|path| path.exists())
-                            .unwrap_or_else(|| "vikey-daemon".into());
+                            .unwrap_or_else(|| "unixkey-daemon".into());
                         let _ = Command::new(exe).spawn();
                         std::thread::sleep(Duration::from_millis(350));
                         self.poll_daemon();
@@ -487,7 +487,7 @@ impl ViKeyGuiApp {
 
             // Explicit Quit button to shut down both GUI and daemon
             let quit_btn = egui::Button::new(
-                RichText::new("Quit ViKey Completely")
+                RichText::new("Quit UniXKey Completely")
                     .size(11.5)
                     .color(p.tag_vn_fg),
             )
@@ -497,7 +497,7 @@ impl ViKeyGuiApp {
 
             if ui
                 .add_sized([ui.available_width(), 24.0], quit_btn)
-                .on_hover_text("Stop the background IME daemon and exit ViKey")
+                .on_hover_text("Stop the background IME daemon and exit UniXKey")
                 .clicked()
             {
                 let _ = self.config.save();
@@ -661,7 +661,7 @@ impl ViKeyGuiApp {
                 );
 
                 if close_resp
-                    .on_hover_text("Minimize to system tray (ViKey keeps running in background)")
+                    .on_hover_text("Minimize to system tray (UniXKey keeps running in background)")
                     .clicked()
                 {
                     let _ = self.config.save();
@@ -1439,7 +1439,7 @@ fn regex_escape(s: &str) -> String {
 
 fn gui_socket_path() -> std::path::PathBuf {
     let mut p = runtime_socket_path();
-    p.set_file_name("vikey-gui.sock");
+    p.set_file_name("unixkey-gui.sock");
     p
 }
 
@@ -1451,9 +1451,9 @@ fn ensure_daemon_running() {
     let _ = Command::new("pkill").args(["-x", "ibus-daemon"]).status();
     let exe = std::env::current_exe()
         .ok()
-        .and_then(|path| path.parent().map(|d| d.join("vikey-daemon")))
+        .and_then(|path| path.parent().map(|d| d.join("unixkey-daemon")))
         .filter(|path| path.exists())
-        .unwrap_or_else(|| "vikey-daemon".into());
+        .unwrap_or_else(|| "unixkey-daemon".into());
     let _ = Command::new(exe).spawn();
     std::thread::sleep(Duration::from_millis(300));
 }
@@ -1461,15 +1461,15 @@ fn ensure_daemon_running() {
 fn run_window_worker() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("ViKey — Vietnamese Input for Niri")
-            .with_app_id("vikey-gui")
+            .with_title("UniXKey — Vietnamese Input for Niri")
+            .with_app_id("unixkey-gui")
             .with_decorations(false)
             .with_inner_size([840.0, 560.0]),
         ..Default::default()
     };
 
     eframe::run_native(
-        "ViKey",
+        "UniXKey",
         options,
         Box::new(|cc| Ok(Box::new(ViKeyGuiApp::new(cc)))),
     )
@@ -1483,7 +1483,7 @@ fn main() -> eframe::Result<()> {
     ensure_daemon_running();
 
     let sock_path = gui_socket_path();
-    // If a resident vikey-gui supervisor is already running minimized to tray, wake it up!
+    // If a resident unixkey-gui supervisor is already running minimized to tray, wake it up!
     if let Ok(mut stream) = UnixStream::connect(&sock_path) {
         let _ = stream.write_all(b"show\n");
         let _ = stream.flush();
@@ -1492,10 +1492,10 @@ fn main() -> eframe::Result<()> {
 
     let _ = fs::remove_file(&sock_path);
     let listener = std::os::unix::net::UnixListener::bind(&sock_path)
-        .expect("Failed to bind vikey-gui control socket");
+        .expect("Failed to bind unixkey-gui control socket");
     let _ = listener.set_nonblocking(true);
 
-    let self_exe = std::env::current_exe().unwrap_or_else(|_| "vikey-gui".into());
+    let self_exe = std::env::current_exe().unwrap_or_else(|_| "unixkey-gui".into());
     let mut should_open_window = true;
 
     loop {
@@ -1505,15 +1505,15 @@ fn main() -> eframe::Result<()> {
             if let Ok(status) = Command::new(&self_exe).arg("--window-worker").status()
                 && status.code() == Some(42)
             {
-                // User clicked "Quit ViKey Completely"
+                // User clicked "Quit UniXKey Completely"
                 break;
             }
             println!(
-                "ViKey minimized to system tray (VN/EN icon in top bar). Use tray menu 'Open ViKey Settings...' to restore."
+                "UniXKey minimized to system tray (VN/EN icon in top bar). Use tray menu 'Open UniXKey Settings...' to restore."
             );
         }
 
-        // Wait for tray "Open ViKey Settings..." or another `vikey-gui` invocation
+        // Wait for tray "Open UniXKey Settings..." or another `unixkey-gui` invocation
         if let Ok((stream, _)) = listener.accept() {
             let mut reader = BufReader::new(stream);
             let mut cmd = String::new();

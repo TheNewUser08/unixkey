@@ -1,15 +1,19 @@
 [package]
-name = "vikey-cli"
+name = "unixkey-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [[bin]]
-name = "vikey-ctl"
-path = "src/main.rs"
+name = "unixkey-ctl"
+path = "src/bin/unixkey-ctl.rs"
+
+[[bin]]
+name = "unixkey"
+path = "src/bin/unixkey.rs"
 
 [dependencies]
-vikey-core = { path = "../vikey-core" }
+unixkey-core = { path = "../unixkey-core" }
 anyhow.workspace = true
 clap.workspace = true
 serde.workspace = true

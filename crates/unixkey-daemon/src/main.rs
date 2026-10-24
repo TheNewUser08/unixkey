@@ -11,7 +11,7 @@ use calloop::EventLoop;
 use calloop::channel::{self, Event as ChannelEvent};
 use calloop_wayland_source::WaylandSource;
 use log::info;
-use vikey_core::{Config, runtime_socket_path};
+use unixkey_core::{Config, runtime_socket_path};
 use wayland_client::Connection;
 use wayland_client::protocol::wl_keyboard::KeyState;
 
@@ -75,7 +75,7 @@ fn main() -> Result<()> {
         None
     };
 
-    // 3. Spawn Unix Socket Control Server ($XDG_RUNTIME_DIR/vikey.sock)
+    // 3. Spawn Unix Socket Control Server ($XDG_RUNTIME_DIR/unixkey.sock)
     spawn_ipc_server(msg_tx.clone(), DaemonMessage::Ipc)?;
 
     // 4. Register message channel on calloop
@@ -102,7 +102,7 @@ fn main() -> Result<()> {
         .insert(loop_handle)
         .map_err(|e| anyhow::anyhow!("Failed to insert WaylandSource: {e}"))?;
 
-    info!("vikey-daemon started and ready for Niri Wayland input!");
+    info!("unixkey-daemon started and ready for Niri Wayland input!");
 
     let mut repeat_started_at: Option<(u32, Instant)> = None;
     let mut last_repeat_tick: Option<Instant> = None;
@@ -141,7 +141,7 @@ fn main() -> Result<()> {
 
     let _ = std::fs::remove_file(runtime_socket_path());
     let mut gui_sock = runtime_socket_path();
-    gui_sock.set_file_name("vikey-gui.sock");
+    gui_sock.set_file_name("unixkey-gui.sock");
     if let Ok(mut stream) = std::os::unix::net::UnixStream::connect(&gui_sock) {
         use std::io::Write;
         let _ = stream.write_all(b"quit\n");

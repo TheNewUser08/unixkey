@@ -1,0 +1,14 @@
+[Unit]
+Description=UniXKey — Standalone Wayland Vietnamese Input Method Daemon for Niri
+Documentation=https://github.com/TheNewUser08/vikey
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/unixkey-daemon
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target

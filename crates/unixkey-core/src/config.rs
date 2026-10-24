@@ -111,18 +111,34 @@ impl Default for Config {
 
 impl Config {
     pub fn config_path() -> PathBuf {
-        if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME")
+        let base = if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME")
             && !xdg.is_empty()
         {
-            return PathBuf::from(xdg).join("vikey").join("config.toml");
+            PathBuf::from(xdg)
+        } else if let Ok(home) = std::env::var("HOME") {
+            PathBuf::from(home).join(".config")
+        } else {
+            return PathBuf::from("/tmp/unixkey-config.toml");
+        };
+
+        let new_path = base.join("unixkey").join("config.toml");
+        let old_path = base.join("vikey").join("config.toml");
+
+        if new_path.exists() {
+            return new_path;
         }
-        if let Ok(home) = std::env::var("HOME") {
-            return PathBuf::from(home)
-                .join(".config")
-                .join("vikey")
-                .join("config.toml");
+        if old_path.exists() {
+            // Attempt automatic copy to new path for seamless migration
+            if let Some(parent) = new_path.parent() {
+                let _ = fs::create_dir_all(parent);
+                let _ = fs::copy(&old_path, &new_path);
+            }
+            if new_path.exists() {
+                return new_path;
+            }
+            return old_path;
         }
-        PathBuf::from("/tmp/vikey-config.toml")
+        new_path
     }
 
     pub fn load_or_default() -> Self {
@@ -138,7 +154,16 @@ impl Config {
     }
 
     pub fn save(&self) -> Result<(), String> {
-        let path = Self::config_path();
+        let base = if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME")
+            && !xdg.is_empty()
+        {
+            PathBuf::from(xdg)
+        } else if let Ok(home) = std::env::var("HOME") {
+            PathBuf::from(home).join(".config")
+        } else {
+            PathBuf::from("/tmp")
+        };
+        let path = base.join("unixkey").join("config.toml");
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }

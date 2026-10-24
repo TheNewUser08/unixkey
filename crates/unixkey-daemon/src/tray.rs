@@ -6,7 +6,7 @@ use std::thread;
 
 use calloop::channel::Sender;
 use log::{debug, info, warn};
-use vikey_core::{InputMethod, ToneStyle};
+use unixkey_core::{InputMethod, ToneStyle};
 use zbus::blocking::Connection;
 use zbus::interface;
 use zbus::zvariant::{ObjectPath, OwnedValue, Value};
@@ -62,16 +62,16 @@ impl<E: Send + 'static> SniService<E> {
 
     #[zbus(property)]
     fn id(&self) -> &str {
-        "vikey"
+        "unixkey"
     }
 
     #[zbus(property)]
     fn title(&self) -> String {
         let st = self.state.lock().unwrap();
         if st.enabled {
-            "ViKey (VN)".to_string()
+            "UniXKey (VN)".to_string()
         } else {
-            "ViKey (EN)".to_string()
+            "UniXKey (EN)".to_string()
         }
     }
 
@@ -105,9 +105,9 @@ impl<E: Send + 'static> SniService<E> {
     fn tool_tip(&self) -> (String, Vec<(i32, i32, Vec<u8>)>, String, String) {
         let st = self.state.lock().unwrap();
         let title = if st.enabled {
-            "ViKey — Tiếng Việt (VN)"
+            "UniXKey — Tiếng Việt (VN)"
         } else {
-            "ViKey — English (EN)"
+            "UniXKey — English (EN)"
         };
         let desc = format!(
             "Method: {:?} | Tone: {:?}\nLeft-click: Toggle VN/EN | Right-click: Menu",
@@ -347,13 +347,13 @@ fn item_props(label: &str, enabled: bool, is_separator: bool) -> HashMap<String,
 }
 
 fn gui_socket_path() -> std::path::PathBuf {
-    let mut p = vikey_core::runtime_socket_path();
-    p.set_file_name("vikey-gui.sock");
+    let mut p = unixkey_core::runtime_socket_path();
+    p.set_file_name("unixkey-gui.sock");
     p
 }
 
 fn spawn_gui_process() {
-    // If a vikey-gui supervisor is already running minimized in the background, wake it up!
+    // If a unixkey-gui supervisor is already running minimized in the background, wake it up!
     if let Ok(mut stream) = std::os::unix::net::UnixStream::connect(gui_socket_path()) {
         use std::io::Write;
         let _ = stream.write_all(b"show\n");
@@ -363,9 +363,9 @@ fn spawn_gui_process() {
 
     let exe = std::env::current_exe()
         .ok()
-        .and_then(|p| p.parent().map(|d| d.join("vikey-gui")))
+        .and_then(|p| p.parent().map(|d| d.join("unixkey-gui")))
         .filter(|p| p.exists())
-        .unwrap_or_else(|| "vikey-gui".into());
+        .unwrap_or_else(|| "unixkey-gui".into());
 
     let _ = Command::new(exe).spawn();
 }
@@ -384,7 +384,7 @@ where
     let map_arc: Arc<dyn Fn(TrayAction) -> E + Send + Sync> = Arc::new(map_action);
 
     thread::Builder::new()
-        .name("vikey-sni-tray".to_string())
+        .name("unixkey-sni-tray".to_string())
         .spawn(move || {
             let Ok(conn) = Connection::session() else {
                 warn!("Could not connect to DBus session bus for StatusNotifierItem tray");
@@ -443,7 +443,7 @@ where
                 }
             }
         })
-        .expect("Failed to spawn vikey-sni-tray thread");
+        .expect("Failed to spawn unixkey-sni-tray thread");
 
     TrayHandle { tx: state_tx }
 }

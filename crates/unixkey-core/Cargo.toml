@@ -1,5 +1,5 @@
 [package]
-name = "vikey-core"
+name = "unixkey-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

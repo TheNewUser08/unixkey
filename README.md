@@ -1,4 +1,4 @@
-# ViKey — Standalone Rust Vietnamese Input Method for Fedora & Niri
+# UniXKey — Standalone Rust Vietnamese Input Method for Fedora & Niri
 
 <p align="center">
   <a href="https://ko-fi.com/dang809156"><img src="https://img.shields.io/badge/Ko--fi-Support%20Author-F16061?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi"></a>
@@ -7,15 +7,15 @@
   <img src="https://img.shields.io/badge/Fedora-Wayland%20%2F%20Niri-51A2DA?style=for-the-badge&logo=fedora&logoColor=white" alt="Fedora Niri">
 </p>
 
-ViKey is a lightweight, standalone Vietnamese Input Method Editor (IME) written in pure Rust for **Fedora Linux** and the **Niri** scrolling tiling Wayland compositor.
+UniXKey is a lightweight, standalone Vietnamese Input Method Editor (IME) written in pure Rust for **Fedora Linux** and the **Niri** scrolling tiling Wayland compositor.
 
-Unlike traditional Linux IMEs, ViKey speaks `zwp_input_method_v2` and `zwp_virtual_keyboard_v1` directly to Niri without requiring IBus or Fcitx5, and connects to `$NIRI_SOCKET` for intelligent per-window language memory and per-application commit strategies.
+Unlike traditional Linux IMEs, UniXKey speaks `zwp_input_method_v2` and `zwp_virtual_keyboard_v1` directly to Niri without requiring IBus or Fcitx5, and connects to `$NIRI_SOCKET` for intelligent per-window language memory and per-application commit strategies.
 
 ## Features
 
-- **Standalone Wayland Daemon (`vikey-daemon`)**: Uses `zwp_input_method_v2` + `zwp_virtual_keyboard_v1` directly with Niri.
+- **Standalone Wayland Daemon (`unixkey-daemon`)**: Uses `zwp_input_method_v2` + `zwp_virtual_keyboard_v1` directly with Niri.
 - **Native Wayland Pre-edit Buffer**: Clean inline composition buffer (`zwp_input_method_v2::set_preedit_string`) with full Wayland text-input protocol compliance.
-- **Complete Linguistic Engine (`vikey-core`)**:
+- **Complete Linguistic Engine (`unixkey-core`)**:
   - **Telex** & **VNI** input methods with free-order tone/diacritic placement and double-tap escape undo (`aa` -> `a`, `dd` -> `d`, `ww` -> `w`, `ss` -> `s`).
   - **Modern** (`hoà`, `hoè`, `thuý`) and **Traditional** (`hòa`, `hòe`, `thúy`) tone placement.
   - **Vietnamese Phonotactic Spellchecker & English Auto-Restore**: Automatically preserves English words (`window`, `wayland`, `restore`, `fedora`, `firefox`, `rust`, `support`, `text`, etc.) without switching modes.
@@ -24,15 +24,15 @@ Unlike traditional Linux IMEs, ViKey speaks `zwp_input_method_v2` and `zwp_virtu
   - Automatically switches to `EN` in terminal emulators (`foot`, `Alacritty`, `kitty`, `wezterm`, `ghostty`, `Ptyxis`) and Steam games (`steam_app_*`).
 - **System Tray, Pure Rust GUI & CLI**:
   - Built-in DBus `StatusNotifierItem` tray badge (`VN` / `EN`) for Waybar / Cosmic Panel.
-  - `vikey-gui`: Pure Rust `egui`/`eframe` settings panel with a live Niri running-app rule picker and test sandbox.
-  - `vikey-ctl`: Fast CLI for Niri keybinds (`vikey-ctl toggle`) and Waybar custom module streaming (`vikey-ctl status --watch --json`).
+  - `unixkey-gui`: Pure Rust `egui`/`eframe` settings panel with a live Niri running-app rule picker and test sandbox.
+  - `unixkey-ctl` (or `unixkey`): Fast CLI for Niri keybinds (`unixkey-ctl toggle`) and Waybar custom module streaming (`unixkey-ctl status --watch --json`).
 
 ## Installation on Fedora Linux
 
 ```bash
-cargo install --path crates/vikey-daemon
-cargo install --path crates/vikey-cli
-cargo install --path crates/vikey-gui
+cargo install --path crates/unixkey-daemon
+cargo install --path crates/unixkey-cli
+cargo install --path crates/unixkey-gui
 ```
 
 ## Niri Configuration (`~/.config/niri/config.kdl`)
@@ -47,7 +47,7 @@ See [`packaging/niri-snippet.kdl`](packaging/niri-snippet.kdl).
 
 ## Support / Ủng hộ tác giả ☕
 
-Nếu bạn thấy ViKey hữu ích cho trải nghiệm gõ tiếng Việt trên Linux và Niri, bạn có thể ủng hộ dự án qua:
+Nếu bạn thấy UniXKey hữu ích cho trải nghiệm gõ tiếng Việt trên Linux và Niri, bạn có thể ủng hộ dự án qua:
 
 ### 🇻🇳 Chuyển khoản qua VietQR (BIDV)
 

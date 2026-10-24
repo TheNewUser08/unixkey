@@ -5,7 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 use regex::Regex;
-use vikey_core::{
+use unixkey_core::{
     CommitMode, Config, DaemonStatus, InputMethod, IpcRequest, IpcResponse, WordBuffer,
 };
 use wayland_client::protocol::wl_keyboard::KeyState;
@@ -137,13 +137,13 @@ impl DaemonState {
         if self.virtual_keyboard.is_none() {
             let vk = vk_mgr.create_virtual_keyboard(seat, qh, ());
             self.virtual_keyboard = Some(vk);
-            eprintln!("[vikey-daemon] Bound zwp_virtual_keyboard_v1 on seat");
+            eprintln!("[unixkey-daemon] Bound zwp_virtual_keyboard_v1 on seat");
         }
 
         if self.input_method.is_none() {
             let im = im_mgr.get_input_method(seat, qh, ());
             self.input_method = Some(im);
-            eprintln!("[vikey-daemon] Bound zwp_input_method_v2 on seat");
+            eprintln!("[unixkey-daemon] Bound zwp_input_method_v2 on seat");
         }
     }
 
@@ -198,7 +198,7 @@ impl DaemonState {
         if self.config.remember_per_window
             && let Some(win) = self.niri.focused_window()
         {
-            if win.app_id.as_deref() == Some("vikey-gui") {
+            if win.app_id.as_deref() == Some("unixkey-gui") || win.app_id.as_deref() == Some("vikey-gui") {
                 // Toggled from inside the GUI control window: apply to all remembered windows
                 for val in self.window_lang_memory.values_mut() {
                     *val = self.enabled;
@@ -218,13 +218,9 @@ impl DaemonState {
 
         self.flush_and_reset_buffer();
 
-        // Don't switch language state just because the user focused vikey-gui itself
-        if self
-            .niri
-            .focused_window()
-            .and_then(|w| w.app_id.as_deref())
-            == Some("vikey-gui")
-        {
+        // Don't switch language state just because the user focused unixkey-gui itself
+        let app_id = self.niri.focused_window().and_then(|w| w.app_id.as_deref());
+        if app_id == Some("unixkey-gui") || app_id == Some("vikey-gui") {
             self.notify_state_changed();
             return;
         }
@@ -697,7 +693,7 @@ impl Dispatch<ZwpInputMethodV2, ()> for DaemonState {
                         if state.keyboard_grab.is_none() {
                             let grab = im.grab_keyboard(qh, ());
                             state.keyboard_grab = Some(grab);
-                            eprintln!("[vikey-daemon] IME active on focused text input (keyboard grabbed)");
+                            eprintln!("[unixkey-daemon] IME active on focused text input (keyboard grabbed)");
                         }
                     } else {
                         if let Some(grab) = state.keyboard_grab.take() {
@@ -715,7 +711,7 @@ impl Dispatch<ZwpInputMethodV2, ()> for DaemonState {
                 if state.unavailable_retries < 2 {
                     state.unavailable_retries += 1;
                     eprintln!(
-                        "[vikey-daemon] Another IME (fcitx5/ibus) is holding the Wayland seat; stopping it and taking over..."
+                        "[unixkey-daemon] Another IME (fcitx5/ibus) is holding the Wayland seat; stopping it and taking over..."
                     );
                     let _ = Command::new("pkill").args(["-x", "fcitx5"]).status();
                     let _ = Command::new("pkill").args(["-x", "ibus-daemon"]).status();
@@ -726,7 +722,7 @@ impl Dispatch<ZwpInputMethodV2, ()> for DaemonState {
                     state.bind_ime_objects_if_ready(qh);
                 } else {
                     eprintln!(
-                        "[vikey-daemon] ERROR: zwp_input_method_v2 unavailable after retries. Another IME is still active."
+                        "[unixkey-daemon] ERROR: zwp_input_method_v2 unavailable after retries. Another IME is still active."
                     );
                     state.should_quit = true;
                 }
@@ -748,7 +744,7 @@ impl Dispatch<ZwpInputMethodKeyboardGrabV2, ()> for DaemonState {
         match event {
             zwp_input_method_keyboard_grab_v2::Event::Keymap { format, fd, size } => {
                 if let Err(e) = state.xkb.load_keymap_from_fd(&fd, size as usize) {
-                    eprintln!("[vikey-daemon] Failed to load XKB keymap: {e}");
+                    eprintln!("[unixkey-daemon] Failed to load XKB keymap: {e}");
                 }
                 if let Some(vk) = &state.virtual_keyboard {
                     vk.keymap(format.into(), fd.as_fd(), size);

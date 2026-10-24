@@ -4,7 +4,7 @@ use std::ptr;
 
 use anyhow::{Result, bail};
 use memmap2::MmapOptions;
-use vikey_core::ToggleShortcut;
+use unixkey_core::ToggleShortcut;
 use xkbcommon_dl::{
     XKB_MOD_NAME_ALT, XKB_MOD_NAME_CTRL, XKB_MOD_NAME_LOGO, XKB_MOD_NAME_SHIFT, xkb_context,
     xkb_context_flags, xkb_keymap, xkb_keymap_compile_flags, xkb_keymap_format, xkb_state,

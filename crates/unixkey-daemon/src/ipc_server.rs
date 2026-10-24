@@ -8,7 +8,7 @@ use std::thread;
 use anyhow::Result;
 use calloop::channel::Sender;
 use log::{info, warn};
-use vikey_core::{DaemonStatus, IpcRequest, IpcResponse, runtime_socket_path};
+use unixkey_core::{DaemonStatus, IpcRequest, IpcResponse, runtime_socket_path};
 
 pub struct IpcCommand {
     pub req: IpcRequest,
@@ -58,7 +58,7 @@ where
     let map_arc = Arc::new(map_cmd);
 
     thread::Builder::new()
-        .name("vikey-ipc-server".to_string())
+        .name("unixkey-ipc-server".to_string())
         .spawn(move || {
             for incoming in listener.incoming() {
                 match incoming {

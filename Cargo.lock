@@ -2926,6 +2926,61 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
+name = "unixkey-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "serde",
+ "serde_json",
+ "unixkey-core",
+]
+
+[[package]]
+name = "unixkey-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "unixkey-daemon"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "calloop 0.14.5",
+ "calloop-wayland-source 0.4.1",
+ "log",
+ "memmap2",
+ "regex",
+ "rustix 1.1.5",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "toml",
+ "unixkey-core",
+ "wayland-client",
+ "wayland-protocols",
+ "wayland-protocols-misc",
+ "xkbcommon-dl",
+ "zbus",
+]
+
+[[package]]
+name = "unixkey-gui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "eframe",
+ "egui",
+ "serde",
+ "serde_json",
+ "toml",
+ "unixkey-core",
+]
+
+[[package]]
 name = "url"
 version = "2.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2965,61 +3020,6 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
-
-[[package]]
-name = "vikey-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "serde",
- "serde_json",
- "vikey-core",
-]
-
-[[package]]
-name = "vikey-core"
-version = "0.1.0"
-dependencies = [
- "serde",
- "toml",
-]
-
-[[package]]
-name = "vikey-daemon"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "calloop 0.14.5",
- "calloop-wayland-source 0.4.1",
- "log",
- "memmap2",
- "regex",
- "rustix 1.1.5",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "toml",
- "vikey-core",
- "wayland-client",
- "wayland-protocols",
- "wayland-protocols-misc",
- "xkbcommon-dl",
- "zbus",
-]
-
-[[package]]
-name = "vikey-gui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "eframe",
- "egui",
- "serde",
- "serde_json",
- "toml",
- "vikey-core",
-]
 
 [[package]]
 name = "walkdir"

@@ -53,10 +53,10 @@ pub fn runtime_socket_path() -> PathBuf {
     if let Ok(dir) = std::env::var("XDG_RUNTIME_DIR")
         && !dir.is_empty()
     {
-        return PathBuf::from(dir).join("vikey.sock");
+        return PathBuf::from(dir).join("unixkey.sock");
     }
     let uid = unsafe { libc_getuid() };
-    PathBuf::from(format!("/tmp/vikey-{uid}.sock"))
+    PathBuf::from(format!("/tmp/unixkey-{uid}.sock"))
 }
 
 unsafe fn libc_getuid() -> u32 {
