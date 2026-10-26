@@ -31,7 +31,7 @@ impl CommitMode {
                 "Composes words in an underlined Wayland buffer. Standard & stable, but search bars and IDE recommendations wait for word completion."
             }
             CommitMode::Direct => {
-                "Commits every letter immediately. Real-time IDE code completion and live search suggestions work while typing. Uses delete_surrounding_text (virtual-keyboard Backspace fallback)."
+                "Commits every letter immediately. Real-time IDE code completion and live search suggestions work while typing. Replaces text with virtual-keyboard Backspace."
             }
         }
     }
@@ -81,6 +81,9 @@ pub struct Config {
     pub engine: EngineConfig,
     pub default_commit_mode: CommitMode,
     pub backspace_delay_ms: u64,
+    /// Direct mode: replace text with `zwp_input_method_v2.delete_surrounding_text` instead of
+    /// virtual-keyboard Backspace. Atomic, but some clients (Chromium/Electron) ignore it.
+    pub direct_use_delete_surrounding: bool,
     pub toggle_shortcut: ToggleShortcut,
     pub remember_per_window: bool,
     pub enable_tray: bool,
@@ -95,6 +98,7 @@ impl Default for Config {
             engine: EngineConfig::default(),
             default_commit_mode: CommitMode::Preedit,
             backspace_delay_ms: 10,
+            direct_use_delete_surrounding: false,
             toggle_shortcut: ToggleShortcut::CtrlShift,
             remember_per_window: true,
             enable_tray: true,

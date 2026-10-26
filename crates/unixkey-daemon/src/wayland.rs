@@ -437,7 +437,7 @@ impl DaemonState {
             return;
         }
 
-        if self.has_surrounding {
+        if self.config.direct_use_delete_surrounding && self.has_surrounding {
             im.delete_surrounding_text(diff.delete_bytes as u32, 0);
             if !diff.insert_text.is_empty() {
                 im.commit_string(diff.insert_text.clone());
