@@ -15,7 +15,7 @@ Unlike traditional Linux IMEs, UniXKey speaks `zwp_input_method_v2` and `zwp_vir
 
 - **Standalone Wayland Daemon (`unixkey-daemon`)**: Uses `zwp_input_method_v2` + `zwp_virtual_keyboard_v1` directly with Niri.
 - **Dual Commit Engine (Per-App Configurable)**:
-  - **`direct` (Direct Commit)**: Uses Linux kernel `/dev/uinput` for zero-latency direct character commit without underline. Enables live IDE code recommendations (VS Code, Zed) and real-time browser search suggestions as you type.
+  - **`direct` (Direct Commit)**: Commits characters directly without underline, replacing text atomically via `delete_surrounding_text` (virtual-keyboard Backspace fallback for apps without surrounding-text support). Enables live IDE code recommendations (VS Code, Zed) and real-time browser search suggestions as you type.
   - **`preedit` (Pre-edit Buffer)**: Standard Wayland underlined composition buffer (`zwp_input_method_v2::set_preedit_string`) with full protocol compliance.
 - **Complete Linguistic Engine (`unixkey-core`)**:
   - **Telex** & **VNI** input methods with free-order tone/diacritic placement and double-tap escape undo (`aa` -> `a`, `dd` -> `d`, `ww` -> `w`, `ss` -> `s`).

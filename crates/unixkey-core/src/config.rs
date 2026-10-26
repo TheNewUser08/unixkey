@@ -31,7 +31,7 @@ impl CommitMode {
                 "Composes words in an underlined Wayland buffer. Standard & stable, but search bars and IDE recommendations wait for word completion."
             }
             CommitMode::Direct => {
-                "Commits every letter immediately. Real-time IDE code completion and live search suggestions work while typing. Uses kernel uinput/backspace."
+                "Commits every letter immediately. Real-time IDE code completion and live search suggestions work while typing. Uses delete_surrounding_text (virtual-keyboard Backspace fallback)."
             }
         }
     }

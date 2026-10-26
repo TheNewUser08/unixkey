@@ -1,7 +1,6 @@
 mod ipc_server;
 mod niri;
 mod tray;
-mod uinput;
 mod wayland;
 mod xkb;
 
@@ -109,15 +108,27 @@ fn main() -> Result<()> {
     let mut last_repeat_tick: Option<Instant> = None;
 
     while !state.should_quit {
-        let timeout = compute_repeat_timeout(
+        let mut timeout = compute_repeat_timeout(
             &state,
             &mut repeat_started_at,
             &mut last_repeat_tick,
         );
+        if let Some(deadline) = state.pending_direct_deadline() {
+            let until = deadline.saturating_duration_since(Instant::now());
+            timeout = Some(timeout.map_or(until, |t| t.min(until)));
+        }
 
         event_loop
             .dispatch(timeout, &mut state)
             .context("Event loop dispatch error")?;
+
+        // Deliver deferred Direct-mode text once the client has processed the Backspaces
+        if state
+            .pending_direct_deadline()
+            .is_some_and(|d| Instant::now() >= d)
+        {
+            state.flush_pending_direct_insert();
+        }
 
         // Check if a held key is due for a repeat event
         if let Some((key, base_time_ms)) = state.repeating_key

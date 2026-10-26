@@ -28,7 +28,6 @@ use wayland_protocols_misc::zwp_virtual_keyboard_v1::client::zwp_virtual_keyboar
 use crate::ipc_server::{IpcCommand, SubscriberRegistry};
 use crate::niri::{NiriEvent, NiriTracker};
 use crate::tray::{TrayAction, TrayHandle, TrayState};
-use crate::uinput::UinputKeyboard;
 use crate::xkb::{EVDEV_KEY_BACKSPACE, EVDEV_KEY_ENTER, EVDEV_KEY_TAB, XkbTracker};
 
 struct CompiledAppRule {
@@ -68,10 +67,11 @@ pub struct DaemonState {
     pub xkb: XkbTracker,
     pub word_buffer: WordBuffer,
     pub swallowed_keys: HashSet<u32>,
-    pub synthetic_backspaces_pending: u32,
     pub enabled: bool,
     pub active_commit_mode: CommitMode,
-    pub uinput_kb: Option<UinputKeyboard>,
+    /// Direct-mode fallback (clients without surrounding-text support): text waiting to be
+    /// committed after the virtual-keyboard Backspaces have been processed by the client.
+    pub pending_direct_insert: Option<(Instant, String)>,
     pub start_instant: Instant,
 
     // Key repeat state
@@ -119,10 +119,9 @@ impl DaemonState {
             xkb,
             word_buffer: WordBuffer::new(),
             swallowed_keys: HashSet::new(),
-            synthetic_backspaces_pending: 0,
             enabled,
             active_commit_mode,
-            uinput_kb: UinputKeyboard::try_new(),
+            pending_direct_insert: None,
             start_instant: Instant::now(),
             repeat_rate: 30,
             repeat_delay: 400,
@@ -178,6 +177,7 @@ impl DaemonState {
     }
 
     pub fn flush_and_reset_buffer(&mut self) {
+        self.flush_pending_direct_insert();
         if !self.word_buffer.is_empty() {
             if self.active_commit_mode == CommitMode::Preedit
                 && let Some(im) = &self.input_method
@@ -377,54 +377,103 @@ impl DaemonState {
         self.start_instant.elapsed().as_millis() as u32
     }
 
-    /// Commits a `Diff` according to Direct commit mode (uinput or virtual keyboard).
+    /// Deadline of the deferred Direct-mode commit (if any), used by the event loop timeout.
+    pub fn pending_direct_deadline(&self) -> Option<Instant> {
+        self.pending_direct_insert.as_ref().map(|(d, _)| *d)
+    }
+
+    /// Commits deferred Direct-mode text (fallback path) using the latest `done_serial`.
+    pub fn flush_pending_direct_insert(&mut self) {
+        let Some((_, text)) = self.pending_direct_insert.take() else {
+            return;
+        };
+        if text.is_empty() {
+            return;
+        }
+        if let Some(im) = &self.input_method {
+            im.commit_string(text);
+            im.commit(self.done_serial);
+            let _ = self.conn.flush();
+        }
+    }
+
+    /// Commits a `Diff` in Direct commit mode.
+    ///
+    /// Preferred path: `delete_surrounding_text` + `commit_string` in a single atomic
+    /// `zwp_input_method_v2.commit`, so the deletion and insertion can never be reordered
+    /// or dropped (no synthetic Backspace keys involved).
+    ///
+    /// Fallback (client does not support surrounding text): send Backspace through the
+    /// virtual keyboard and defer the insertion via the event loop (non-blocking) so the
+    /// client processes the Backspace first.
     fn commit_immediate_diff(&mut self, diff: &Diff) {
         if diff.is_noop() {
             return;
         }
-        let Some(im) = &self.input_method else {
+        let Some(im) = self.input_method.clone() else {
             return;
         };
 
-        if diff.backspace_chars == 0 {
-            if !diff.insert_text.is_empty() {
-                im.commit_string(diff.insert_text.clone());
-                im.commit(self.done_serial);
-                let _ = self.conn.flush();
+        // A deferred insertion is still waiting: merge into it instead of racing it.
+        if let Some((_, pending)) = &mut self.pending_direct_insert {
+            let mut remaining = diff.backspace_chars;
+            while remaining > 0 && pending.pop().is_some() {
+                remaining -= 1;
             }
+            pending.push_str(&diff.insert_text);
+            if remaining == 0 {
+                return;
+            }
+            // Need to delete characters already present in the client as well.
+            self.send_vk_backspaces(remaining);
+            self.extend_pending_deadline();
             return;
         }
 
-        // Need to delete `diff.backspace_chars` characters before inserting `diff.insert_text`
-        if let Some(uinput) = &mut self.uinput_kb {
-            self.synthetic_backspaces_pending =
-                self.synthetic_backspaces_pending.saturating_add(diff.backspace_chars as u32);
-            uinput.send_backspaces(diff.backspace_chars);
-        } else if self.vk_has_keymap
-            && let Some(vk) = &self.virtual_keyboard
-        {
-            let mut t = self.current_timestamp_ms();
-            for _ in 0..diff.backspace_chars {
-                self.synthetic_backspaces_pending =
-                    self.synthetic_backspaces_pending.saturating_add(1);
-                vk.key(t, EVDEV_KEY_BACKSPACE, KeyState::Pressed.into());
-                t = t.wrapping_add(1);
-                vk.key(t, EVDEV_KEY_BACKSPACE, KeyState::Released.into());
-                t = t.wrapping_add(1);
-            }
-            let _ = self.conn.flush();
-        }
-
-        if !diff.insert_text.is_empty() {
-            // Multi-process browsers and IDEs (Zen/Firefox/VS Code/Zed) need a micro-delay
-            // to process the kernel Backspace before zwp_text_input_v3::commit_string arrives.
-            let delay_ms = self.config.backspace_delay_ms.clamp(4, 30);
-            thread::sleep(Duration::from_millis(delay_ms));
-
+        if diff.backspace_chars == 0 {
             im.commit_string(diff.insert_text.clone());
             im.commit(self.done_serial);
             let _ = self.conn.flush();
+            return;
         }
+
+        if self.has_surrounding {
+            im.delete_surrounding_text(diff.delete_bytes as u32, 0);
+            if !diff.insert_text.is_empty() {
+                im.commit_string(diff.insert_text.clone());
+            }
+            im.commit(self.done_serial);
+            let _ = self.conn.flush();
+            return;
+        }
+
+        self.send_vk_backspaces(diff.backspace_chars);
+        self.pending_direct_insert = Some((Instant::now(), diff.insert_text.clone()));
+        self.extend_pending_deadline();
+    }
+
+    fn extend_pending_deadline(&mut self) {
+        let delay = Duration::from_millis(self.config.backspace_delay_ms.clamp(4, 50));
+        if let Some((deadline, _)) = &mut self.pending_direct_insert {
+            *deadline = Instant::now() + delay;
+        }
+    }
+
+    fn send_vk_backspaces(&self, count: usize) {
+        if !self.vk_has_keymap {
+            return;
+        }
+        let Some(vk) = &self.virtual_keyboard else {
+            return;
+        };
+        let mut t = self.current_timestamp_ms();
+        for _ in 0..count {
+            vk.key(t, EVDEV_KEY_BACKSPACE, KeyState::Pressed.into());
+            t = t.wrapping_add(1);
+            vk.key(t, EVDEV_KEY_BACKSPACE, KeyState::Released.into());
+            t = t.wrapping_add(1);
+        }
+        let _ = self.conn.flush();
     }
 
     pub fn process_key_event(&mut self, time: u32, key: u32, state: KeyState, is_repeat: bool) {
@@ -469,10 +518,11 @@ impl DaemonState {
             return;
         }
 
-        // 3.5. Ignore synthetic Backspaces emitted by our own uinput or virtual_keyboard
-        if key == EVDEV_KEY_BACKSPACE && self.synthetic_backspaces_pending > 0 {
-            self.synthetic_backspaces_pending = self.synthetic_backspaces_pending.saturating_sub(1);
-            return;
+        // 3.5. A new key arrived before the deferred Direct commit fired: deliver it now so
+        // ordering is preserved (virtual keyboard keys never loop back into our grab).
+        let had_pending_direct = self.pending_direct_insert.is_some();
+        if had_pending_direct && key != EVDEV_KEY_BACKSPACE {
+            self.flush_pending_direct_insert();
         }
 
         // 4. Handle Backspace inside active word buffer
@@ -511,6 +561,7 @@ impl DaemonState {
                     }
                 }
             }
+            self.flush_pending_direct_insert();
             self.forward_raw_key(time, key, KeyState::Pressed);
             return;
         }
@@ -520,6 +571,7 @@ impl DaemonState {
             let had_preedit =
                 !self.word_buffer.is_empty() && self.active_commit_mode == CommitMode::Preedit;
             self.finalize_word_on_boundary(None);
+            self.flush_pending_direct_insert();
             if had_preedit {
                 // Allow client (e.g. Zen Browser address bar or chat input) to commit preedit
                 // before receiving Enter/Tab on wl_keyboard.
@@ -624,6 +676,15 @@ impl DaemonState {
                 self.commit_immediate_diff(&diff);
             }
             self.word_buffer.clear();
+            // If the restore is deferred (fallback path), queue the boundary char behind it
+            // so it is not typed before the restored word.
+            if let Some(bch) = boundary_char
+                && !bch.is_control()
+                && let Some((_, pending)) = &mut self.pending_direct_insert
+            {
+                pending.push(bch);
+                return true;
+            }
             false
         }
     }
